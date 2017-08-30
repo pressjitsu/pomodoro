@@ -12,13 +12,13 @@
 
 			$redis = new Redis;
 			$redis->connect( '127.0.0.1' );
-			$redis->setOption( Redis::OPT_SERIALIZER, Redis::SERIALIZER_PHP );
+			$redis->setOption( Redis::OPT_SERIALIZER, Redis::SERIALIZER_NONE );
 
 			self::$redis = &$redis;
 		}
 
 		public function import_from_file( $mofile ) {
-			if ( $mo = self::$redis->get( $mofile ) ) {
+			if ( $mo = json_decode( self::$redis->get( $mofile ), true ) ) {
 				$this->_nplurals = $mo['_nplurals'];
 				$this->entries = $mo['entries'];
 				$this->headers = $mo['headers'];
@@ -29,11 +29,11 @@
 				return false;
 
 			// Add to cache
-			self::$redis->set( $mofile, array(
+			self::$redis->set( $mofile, json_encode( array(
 				'_nplurals' => $this->_nplurals,
 				'entries' => $this->entries,
 				'headers' => $this->headers
-			) );
+			) ) );
 
 			return true;
 		}
