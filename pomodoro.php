@@ -20,6 +20,8 @@
 		public function import_from_file( $mofile ) {
 			if ( $mo = json_decode( self::$redis->get( $mofile ), true ) ) {
 				$this->_nplurals = $mo['_nplurals'];
+				/** Sigh, yes, each translation is an object in WordPress... */
+				array_walk( $mo['entries'], function( &$v ) { $v = new Translation_Entry( $v ); } );
 				$this->entries = $mo['entries'];
 				$this->headers = $mo['headers'];
 				return true;
