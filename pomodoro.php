@@ -4,13 +4,6 @@
 	 */
 
 	class Mo_OPcache extends Mo {
-		private static $redis;
-
-		public function connect() {
-			if ( self::$redis )
-				return;
-		}
-
 		public function import_from_file( $mofile ) {
 			if ( ! function_exists( 'opcache_compile_file' ) ) {
 				return parent::import_from_file( $mofile );
