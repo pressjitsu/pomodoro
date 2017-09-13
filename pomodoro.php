@@ -3,41 +3,40 @@
 	 * A cached translation override.
 	 */
 
-	class Mo_Redis extends Mo {
+	class Mo_OPcache extends Mo {
 		private static $redis;
 
 		public function connect() {
 			if ( self::$redis )
 				return;
-
-			$redis = new Redis;
-			$redis->connect( '127.0.0.1' );
-			$redis->setOption( Redis::OPT_SERIALIZER, Redis::SERIALIZER_NONE );
-
-			self::$redis = &$redis;
 		}
 
 		public function import_from_file( $mofile ) {
-			if ( $mo = json_decode( self::$redis->get( $mofile ), true ) ) {
-				$this->_nplurals = $mo['_nplurals'];
-				/** Sigh, yes, each translation is an object in WordPress... */
-				array_walk( $mo['entries'], function( &$v ) { $v = new Translation_Entry( $v ); } );
-				$this->entries = $mo['entries'];
-				$this->headers = $mo['headers'];
+			if ( ! function_exists( 'opcache_compile_file' ) ) {
+				return parent::import_from_file( $mofile );
+			}
+
+			$mocache = sprintf( '/tmp/%s.mocache', md5( $mofile ) );
+			if ( file_exists( $mocache ) ) {
+				include $mocache; /** OPcache, come forth! */
+				$this->_nplurals = &$mo->_nplurals;
+				$this->entries = &$mo->entries;
+				$this->headers = &$mo->headers;
 				return true;
 			}
 
-			if ( !parent::import_from_file( $mofile ) )
+			if ( ! parent::import_from_file( $mofile ) )
 				return false;
 
-			// Add to cache
-			self::$redis->set( $mofile, json_encode( array(
-				'_nplurals' => $this->_nplurals,
-				'entries' => $this->entries,
-				'headers' => $this->headers
-			) ) );
+			/** Hope OPcache picks this up. */
+			$state = str_replace( 'Translation_Entry::__set_state', 'new Translation_Entry', var_export( $this, true ) );
+			file_put_contents( $mocache, sprintf( '<?php $mo = %s;', $state ), LOCK_EX );
 
 			return true;
+		}
+
+		public static function __set_state( $state ) {
+			return new self( $state );
 		}
 	}
 
@@ -47,8 +46,7 @@
 
 		global $l10n;
 
-		$mo = new Mo_Redis();
-		$mo->connect();
+		$mo = new Mo_OPcache();
 
 		if ( !$mo->import_from_file( $mofile ) ) return false;
 
