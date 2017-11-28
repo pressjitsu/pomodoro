@@ -36,7 +36,7 @@ add_filter( 'override_load_textdomain', function( $plugin_override, $domain, $mo
 			/**
 			 * Cache file.
 			 */
-			$cache_file = sprintf( '/tmp/%s.mocache', md5( serialize( func_get_args() ) ) );
+			$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( sys_get_temp_dir() ), md5( serialize( func_get_args() ) ) );
 
 			if ( file_exists( $cache_file ) ) {
 				/**
