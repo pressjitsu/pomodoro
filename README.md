@@ -25,7 +25,7 @@ After:
 
 ## Installation
 
-Drop pomodoro.php into mu-plugins and enjoy the added speed :)
+Drop pomodoro.php into `wp-content/mu-plugins` and enjoy the added speed :)
 
 Requires PHP7+. The more plugins you have the better the performance gains.
 
