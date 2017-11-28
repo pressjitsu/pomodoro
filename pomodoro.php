@@ -2,51 +2,75 @@
 	/**
 	 * A cached translation override.
 	 */
-
-	class Mo_OPcache extends Mo {
-		public function import_from_file( $mofile ) {
-			if ( ! function_exists( 'opcache_compile_file' ) ) {
-				return parent::import_from_file( $mofile );
-			}
-
-			$mocache = sprintf( '/tmp/%s.mocache', md5( $mofile ) );
-			if ( file_exists( $mocache ) ) {
-				include $mocache; /** OPcache, come forth! */
-				$this->_nplurals = &$mo->_nplurals;
-				$this->entries = &$mo->entries;
-				$this->headers = &$mo->headers;
-				return true;
-			}
-
-			if ( ! parent::import_from_file( $mofile ) )
-				return false;
-
-			/** Hope OPcache picks this up. */
-			$state = str_replace( 'Translation_Entry::__set_state', 'new Translation_Entry', var_export( $this, true ) );
-			file_put_contents( $mocache, sprintf( '<?php $mo = %s;', $state ), LOCK_EX );
-
-			return true;
-		}
-
-		public static function __set_state( $state ) {
-			return new self( $state );
-		}
-	}
-
 	add_filter( 'override_load_textdomain', function( $plugin_override, $domain, $mofile ) {
-		if ( !is_readable( $mofile ) )
+		if ( ! is_readable( $mofile ) )
 			return false;
 
 		global $l10n;
 
-		$mo = new Mo_OPcache();
+		$l10n[ $domain ] = new class( $mofile, $domain ) {
+			private $domain = null;
+			private $_cache = array();
+			private $busted = false;
+			private $upstream = null;
+			private $mofile = null;
 
-		if ( !$mo->import_from_file( $mofile ) ) return false;
+			public function __construct( $mofile, $domain ) {
+				$this->domain = $domain;
+				$this->mofile = $mofile;
 
-		if ( isset( $l10n[$domain] ) )
-			$mo->merge_with( $l10n[$domain] );
+				$cache_file = sprintf( '/tmp/%s.mocache', md5( serialize( func_get_args() ) ) );
 
-		$l10n[$domain] = &$mo;
+				if ( file_exists( $cache_file ) ) {
+					include $cache_file;
+					$this->_cache = &$_cache;
+				}
+
+				register_shutdown_function( function() use ( $cache_file ) {
+					/** Dump all known strings to file and have opcache pick it up. */
+					if ( $this->busted ) {
+						file_put_contents( $cache_file, sprintf( '<?php $_cache = %s;', var_export( $this->_cache, true ) ), LOCK_EX );
+					}
+				} );
+			}
+
+			public function translate( $text, $context = null ) {
+				$cache_key = $this->cache_key( func_get_args() );
+
+				if ( isset( $this->_cache[ $cache_key ] ) )
+					return $this->_cache[ $cache_key ];
+
+				$this->busted = true;
+
+				if ( ! $this->upstream ) {
+					$this->upstream = new Mo();
+					$this->upstream->import_from_file( $this->mofile );
+				}
+
+				return $this->_cache[ $cache_key ] = $this->upstream->translate( $text, $context );
+			}
+
+			public function translate_plural( $singular, $plural, $count, $context = null ) {
+				$cache_key = $this->cache_key( func_get_args() );
+
+				if ( isset( $this->_cache[ $cache_key ] ) )
+					return $this->_cache[ $cache_key ];
+
+				$this->busted = true;
+
+				if ( ! $this->upstream ) {
+					$this->upstream = new Mo();
+					$this->upstream->import_from_file( $this->mofile );
+				}
+
+
+				return $this->_cache[ $cache_key ] = $translation = $this->upstream->translate_plural( $singular, $plural, $count, $context );
+			}
+
+			private function cache_key( $args ) {
+				return md5( serialize( array( $args, $this->domain ) ) );
+			}
+		};
 
 		return true;
 	}, 10, 3 );
