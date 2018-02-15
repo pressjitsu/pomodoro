@@ -1,6 +1,8 @@
 <?php
 /**
- * A cached translation override for WordPress.
+ * Plugin Name: POMOdoro Translation Cache
+ * Description: A cached translation override for WordPress.
+ * Plugin URI: https://github.com/pressjitsu/pomodoro/
  *
  * Bakes and stows away expensive translation lookups
  *  as PHP hashtables. Fast and beautiful.
