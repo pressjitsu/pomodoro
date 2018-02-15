@@ -18,12 +18,11 @@ add_filter( 'override_load_textdomain', function( $plugin_override, $domain, $mo
 
 	global $l10n;
 
-	/**
-	 * Override the domain handler.
-	 */
-	$l10n[ $domain ] = new MoCache_Translation( $mofile, $domain );
+	$mo = new MoCache_Translation( $mofile, $domain, $upstream = empty( $l10n[ $domain ] ) ? null : $l10n[ $domain ] );
+	$l10n[ $domain ] = $mo;
+
 	return true;
-}, 10, 3 );
+}, 999, 3 );
 
 class MoCache_Translation {
 	/**
@@ -32,17 +31,29 @@ class MoCache_Translation {
 	private $domain = null;
 	private $cache = array();
 	private $busted = false;
+	private $override = null;
 	private $upstream = null;
 	private $mofile = null;
 
-	public function __construct( $mofile, $domain ) {
+	/**
+	 * Construct the main translation cache instance for a domain.
+	 *
+	 * @param string $mofile The path to the mo file.
+	 * @param string $domain The textdomain.
+	 * @param Translations $merge The class in the same domain, we have overriden it.
+	 */
+	public function __construct( $mofile, $domain, $override ) {
+		$this->mofile = apply_filters( 'load_textdomain_mofile', $mofile, $domain );
 		$this->domain = $domain;
-		$this->mofile = $mofile;
+		$this->override = $override;
 
 		/**
 		 * Cache file.
+		 *
+		 * @todo Bust cache using PO-Revision-Date maybe?
 		 */
-		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( sys_get_temp_dir() ), md5( serialize( func_get_args() ) ) );
+		$filename = md5( serialize( array( $this->domain, $this->mofile ) ) );
+		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( sys_get_temp_dir() ), $filename );
 
 		if ( file_exists( $cache_file ) ) {
 			/**
@@ -66,45 +77,58 @@ class MoCache_Translation {
 		} );
 	}
 
-	private function get_translation( $cache_key ) {
+	private function get_translation( $cache_key, $text, $args ) {
 		/**
 		 * Check cache first.
 		 */
 		if ( isset( $this->cache[ $cache_key ] ) )
 			return $this->cache[ $cache_key ];
 
-		/**
-		 * Invalidate cache for domain.
-		 */
-		$this->busted = true;
+		$translate_function = count( $args ) == 4 ? 'translate_plural' : 'translate';
 
 		/**
-		 * Load and setup a proxy Mo reader.
+		 * Merge overrides.
+		 */
+		if ( $this->override ) {
+			if ( ( $translation = call_user_func_array( array( $this->override, $translate_function ), $args ) ) != $text ) {
+				$this->busted = true;
+				return $this->cache[ $cache_key ] = $translation;
+			}
+		}
+
+		/**
+		 * Default Mo upstream.
 		 */
 		if ( ! $this->upstream ) {
 			$this->upstream = new Mo();
+			do_action( 'load_textdomain', $this->domain, $this->mofile );
 			$this->upstream->import_from_file( $this->mofile );
 		}
+
+		if ( ( $translation = call_user_func_array( array( $this->upstream, $translate_function ), $args ) ) != $text ) {
+			$this->busted = true;
+			return $this->cache[ $cache_key ] = $translation;
+		}
+
+		/**
+		 * No translation found, return as is.
+		 */
+		return $translation;
 	}
 
 	/**
 	 * The translate() function implementation that WordPress calls.
 	 */
 	public function translate( $text, $context = null ) {
-		if ( is_null( $translation = $this->get_translation( $cache_key = $this->cache_key( func_get_args() ) ) ) ) {
-			return $this->cache[ $cache_key ] = $this->upstream->translate( $text, $context );
-		}
-		return $translation;
+		return $this->get_translation( $this->cache_key( func_get_args() ), $text, func_get_args() );
 	}
 
 	/**
 	 * The translate_plural() function implementation that WordPress calls.
 	 */
 	public function translate_plural( $singular, $plural, $count, $context = null ) {
-		if ( is_null( $translation = $this->get_translation( $cache_key = $this->cache_key( func_get_args() ) ) ) ) {
-			return $this->cache[ $cache_key ] = $this->upstream->translate_plural( $singular, $plural, $count, $context );
-		}
-		return $translation;
+		$text = ( abs( $count ) == 1 ) ? $singular : $plural;
+		return $this->get_translation( $this->cache_key( array( $text, $context ) ), $text, func_get_args() );
 	}
 
 	/**
