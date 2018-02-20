@@ -47,13 +47,10 @@ class MoCache_Translation {
 		$this->domain = $domain;
 		$this->override = $override;
 
-		/**
-		 * Cache file.
-		 *
-		 * @todo Bust cache using PO-Revision-Date maybe?
-		 */
 		$filename = md5( serialize( array( $this->domain, $this->mofile ) ) );
 		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( sys_get_temp_dir() ), $filename );
+
+		$mtime = filemtime( $this->mofile );
 
 		if ( file_exists( $cache_file ) ) {
 			/**
@@ -63,16 +60,23 @@ class MoCache_Translation {
 			 */
 			include $cache_file;
 			$this->cache = &$_cache;
+
+			/**
+			 * Mofile has been modified, invalidate it all.
+			 */
+			if ( ! isset( $_mtime ) || ( isset( $_mtime ) && $_mtime < $mtime ) ) {
+				$this->cache = array();
+			}
 		}
 
 		$_this = &$this;
 
-		register_shutdown_function( function() use ( $cache_file, $_this ) {
+		register_shutdown_function( function() use ( $cache_file, $_this, $mtime ) {
 			/**
 			 * New values have been found. Dump everything into a valid PHP script.
 			 */
 			if ( $this->busted ) {
-				file_put_contents( $cache_file, sprintf( '<?php $_cache = %s;', var_export( $_this->cache, true ) ), LOCK_EX );
+				file_put_contents( $cache_file, sprintf( '<?php $_mtime = %d; $_cache = %s;', $mtime, var_export( $_this->cache, true ) ), LOCK_EX );
 			}
 		} );
 	}
