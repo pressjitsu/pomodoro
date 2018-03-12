@@ -114,10 +114,11 @@ class MoCache_Translation {
 			return $this->cache[ $cache_key ] = $translation;
 		}
 
-		/**
-		 * No translation found, return as is.
-		 */
-		return $translation;
+		$translation = call_user_func_array( array( $this->upstream, $translate_function ), $args );
+
+		$this->busted = true;
+
+		return $this->cache[ $cache_key ] = $translation;
 	}
 
 	/**
