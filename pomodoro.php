@@ -88,7 +88,7 @@ class MoCache_Translation {
 		if ( isset( $this->cache[ $cache_key ] ) )
 			return $this->cache[ $cache_key ];
 
-		$translate_function = count( $args ) == 4 ? 'translate_plural' : 'translate';
+		$translate_function = count( $args ) > 2 ? 'translate_plural' : 'translate';
 
 		/**
 		 * Merge overrides.
@@ -133,7 +133,7 @@ class MoCache_Translation {
 	 */
 	public function translate_plural( $singular, $plural, $count, $context = null ) {
 		$text = ( abs( $count ) == 1 ) ? $singular : $plural;
-		return $this->get_translation( $this->cache_key( array( $text, $context ) ), $text, func_get_args() );
+		return $this->get_translation( $this->cache_key( array( $text, $count, $context ) ), $text, func_get_args() );
 	}
 
 	/**
