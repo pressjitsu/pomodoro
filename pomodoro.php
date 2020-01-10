@@ -48,7 +48,7 @@ class MoCache_Translation {
 		$this->override = $override;
 
 		$filename = md5( serialize( array( $this->domain, $this->mofile ) ) );
-		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( sys_get_temp_dir() ), $filename );
+		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( get_temp_dir() ), $filename );
 
 		$mtime = filemtime( $this->mofile );
 
