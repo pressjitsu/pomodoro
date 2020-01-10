@@ -11,6 +11,7 @@
  * Pressjitsu, Inc.
  * https://pressjitsu.com
  */
+namespace Pressjitsu\Pomodoro;
 
 add_filter( 'override_load_textdomain', function( $plugin_override, $domain, $mofile ) {
 	if ( ! is_readable( $mofile ) )
