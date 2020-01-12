@@ -29,7 +29,6 @@ class MoCache_Translation {
 	/**
 	 * Private state.
 	 */
-	private $home_url = null;
 	private $domain = null;
 	private $cache = array();
 	private $busted = false;
@@ -48,9 +47,8 @@ class MoCache_Translation {
 		$this->mofile = apply_filters( 'load_textdomain_mofile', $mofile, $domain );
 		$this->domain = $domain;
 		$this->override = $override;
-		$this->home_url = get_home_url();
 
-		$filename = md5( serialize( array( $this->home_url, $this->domain, $this->mofile ) ) );
+		$filename = md5( serialize( array( get_home_url(), $this->domain, $this->mofile ) ) );
 		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( get_temp_dir() ), $filename );
 
 		$mtime = filemtime( $this->mofile );
