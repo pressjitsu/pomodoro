@@ -11,6 +11,7 @@
  * Pressjitsu, Inc.
  * https://pressjitsu.com
  */
+namespace Pressjitsu\Pomodoro;
 
 add_filter( 'override_load_textdomain', function( $plugin_override, $domain, $mofile ) {
 	if ( ! is_readable( $mofile ) )
@@ -47,8 +48,8 @@ class MoCache_Translation {
 		$this->domain = $domain;
 		$this->override = $override;
 
-		$filename = md5( serialize( array( $this->domain, $this->mofile ) ) );
-		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( sys_get_temp_dir() ), $filename );
+		$filename = md5( serialize( array( get_home_url(), $this->domain, $this->mofile ) ) );
+		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( get_temp_dir() ), $filename );
 
 		$mtime = filemtime( $this->mofile );
 
