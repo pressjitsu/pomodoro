@@ -105,7 +105,7 @@ class MoCache_Translation {
 		 * Default Mo upstream.
 		 */
 		if ( ! $this->upstream ) {
-			$this->upstream = new Mo();
+			$this->upstream = new \Mo();
 			do_action( 'load_textdomain', $this->domain, $this->mofile );
 			$this->upstream->import_from_file( $this->mofile );
 		}
