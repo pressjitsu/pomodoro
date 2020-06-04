@@ -29,6 +29,8 @@ Drop pomodoro.php into `wp-content/mu-plugins` and enjoy the added speed :)
 
 The more plugins you have the better the performance gains.
 
+You can use `POMODORO_CACHE_DIR` constant to change cache directory (needs full path).
+
 ## Support
 
 Let us know how it goes at support@pressjitsu.com ;)
