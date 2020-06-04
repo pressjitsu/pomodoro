@@ -50,8 +50,8 @@ class MoCache_Translation {
 		$temp_dir = get_temp_dir();
 
 		$filename = md5( serialize( array( get_home_url(), $this->domain, $this->mofile ) ) );
-		if ( defined('POMODORO_CACHE_DIR') && POMODORO_CACHE_DIR && wp_mkdir_p( POMODORO_CACHE_DIR ) ) {
-				$temp_dir = POMODORO_CACHE_DIR;
+		if ( defined( 'POMODORO_CACHE_DIR' ) && POMODORO_CACHE_DIR && wp_mkdir_p( POMODORO_CACHE_DIR ) ) {
+			$temp_dir = POMODORO_CACHE_DIR;
 		}
 		$cache_file = sprintf( '%s/%s.mocache', untrailingslashit( $temp_dir ), $filename );
 
