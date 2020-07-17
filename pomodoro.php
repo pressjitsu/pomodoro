@@ -81,13 +81,7 @@ class MoCache_Translation {
 			 * New values have been found. Dump everything into a valid PHP script.
 			 */
 			if ( $this->busted ) {
-				file_put_contents( "$cache_file.test", sprintf( '<?php $_mtime = %d; $_cache = %s;', $mtime, var_export( $_this->cache, true ) ), LOCK_EX );
-				if ( php_check_syntax( "$cache_file.test", $message ) ) {
-					rename( "$cache_file.test", $cache_file );
-				} else {
-					trigger_error( "pomodoro $cache_file.test cache file did not validate syntax: $message" );
-					unlink( "$cache_file.test" );
-				}
+				file_put_contents( $cache_file, sprintf( '<?php $_mtime = %d; $_cache = %s;', $mtime, var_export( $_this->cache, true ) ), LOCK_EX );
 			}
 		} );
 	}
