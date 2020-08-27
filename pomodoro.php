@@ -62,7 +62,7 @@ class MoCache_Translation {
 
 		$mtime = filemtime( $this->mofile );
 
-		if ( file_exists( $cache_file ) ) {
+		if ( $file_exists = file_exists( $cache_file ) ) {
 			/**
 			 * Load cache.
 			 *
@@ -77,22 +77,24 @@ class MoCache_Translation {
 			if ( ! isset( $_mtime ) || ( isset( $_mtime ) && $_mtime < $mtime ) ) {
 				$this->cache = array();
 			}
+		} else {
+			$file_not_exists = true;
 		}
 
 		$_this = &$this;
 
-		register_shutdown_function( function() use ( $cache_file, $_this, $mtime, $domain ) {
+		register_shutdown_function( function() use ( $cache_file, $_this, $mtime, $domain, $file_exists ) {
 			/**
 			 * New values have been found. Dump everything into a valid PHP script.
 			 */
-			if ( $this->busted || empty( $this->cache ) ) {
+			if ( $_this->busted || ( empty( $_this->cache ) && ! $file_exists ) ) {
 				file_put_contents( "$cache_file.test", sprintf( '<?php $_mtime = %d; $_domain = %s; $_cache = %s; // %s', $mtime, var_export( $domain, true ), var_export( $_this->cache, true ), $this->end ), LOCK_EX );
 
 				// Test the file before committing.
 				$fp = fopen( "$cache_file.test", 'rb' );
 
-				fseek( $fp, -strlen( $this->end ), SEEK_END );
-				if ( fgets( $fp ) == $this->end ) {
+				fseek( $fp, -strlen( $_this->end ), SEEK_END );
+				if ( fgets( $fp ) == $_this->end ) {
 					rename( "$cache_file.test", $cache_file );
 				} else {
 					trigger_error( "pomodoro $cache_file.test cache file missing end marker." );
@@ -138,7 +140,7 @@ class MoCache_Translation {
 			return $this->cache[ $cache_key ] = $translation;
 		}
 
-		return $translation;
+		return $this->cache[ $cache_key ] = $translation;
 	}
 
 	/**
