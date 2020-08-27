@@ -77,8 +77,6 @@ class MoCache_Translation {
 			if ( ! isset( $_mtime ) || ( isset( $_mtime ) && $_mtime < $mtime ) ) {
 				$this->cache = array();
 			}
-		} else {
-			$file_not_exists = true;
 		}
 
 		$_this = &$this;
@@ -110,8 +108,14 @@ class MoCache_Translation {
 		/**
 		 * Check cache first.
 		 */
-		if ( isset( $this->cache[ $cache_key ] ) )
+		if ( isset( $this->cache[ $cache_key ] ) ) {
 			return $this->cache[ $cache_key ];
+		}
+
+		/**
+		 * Bust it.
+		 */
+		$this->busted = true;
 
 		$translate_function = count( $args ) > 2 ? 'translate_plural' : 'translate';
 
@@ -119,11 +123,7 @@ class MoCache_Translation {
 		 * Merge overrides.
 		 */
 		if ( $this->override ) {
-			if ( ( $translation = call_user_func_array( array( $this->override, $translate_function ), $args ) ) != $text ) {
-				$this->busted = true;
-				return $this->cache[ $cache_key ] = $translation;
-			}
-			return $translation;
+			return $this->cache[ $cache_key ] = call_user_func_array( array( $this->override, $translate_function ), $args );
 		}
 
 		/**
@@ -135,12 +135,7 @@ class MoCache_Translation {
 			$this->upstream->import_from_file( $this->mofile );
 		}
 
-		if ( ( $translation = call_user_func_array( array( $this->upstream, $translate_function ), $args ) ) != $text ) {
-			$this->busted = true;
-			return $this->cache[ $cache_key ] = $translation;
-		}
-
-		return $this->cache[ $cache_key ] = $translation;
+		return $this->cache[ $cache_key ] = call_user_func_array( array( $this->upstream, $translate_function ), $args );
 	}
 
 	/**
