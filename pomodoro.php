@@ -81,12 +81,12 @@ class MoCache_Translation {
 
 		$_this = &$this;
 
-		register_shutdown_function( function() use ( $cache_file, $_this, $mtime ) {
+		register_shutdown_function( function() use ( $cache_file, $_this, $mtime, $domain ) {
 			/**
 			 * New values have been found. Dump everything into a valid PHP script.
 			 */
-			if ( $this->busted ) {
-				file_put_contents( "$cache_file.test", sprintf( '<?php $_mtime = %d; $_cache = %s; // %s', $mtime, var_export( $_this->cache, true ), $this->end ), LOCK_EX );
+			if ( $this->busted || empty( $this->cache ) ) {
+				file_put_contents( "$cache_file.test", sprintf( '<?php $_mtime = %d; $_domain = %s; $_cache = %s; // %s', $mtime, var_export( $domain, true ), var_export( $_this->cache, true ), $this->end ), LOCK_EX );
 
 				// Test the file before committing.
 				$fp = fopen( "$cache_file.test", 'rb' );
@@ -121,6 +121,7 @@ class MoCache_Translation {
 				$this->busted = true;
 				return $this->cache[ $cache_key ] = $translation;
 			}
+			return $translation;
 		}
 
 		/**
@@ -137,11 +138,7 @@ class MoCache_Translation {
 			return $this->cache[ $cache_key ] = $translation;
 		}
 
-		$translation = call_user_func_array( array( $this->upstream, $translate_function ), $args );
-
-		$this->busted = true;
-
-		return $this->cache[ $cache_key ] = $translation;
+		return $translation;
 	}
 
 	/**
@@ -166,4 +163,3 @@ class MoCache_Translation {
 		return md5( serialize( array( $args, $this->domain ) ) );
 	}
 }
-
